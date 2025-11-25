@@ -1,0 +1,15 @@
+spring:
+  rsocket:
+    server:
+      port: 7000
+      transport: websocket
+      mapping-path: /rsocket
+
+server:
+  port: 8080
+
+logging:
+  level:
+    io.rsocket: DEBUG
+    org.springframework.messaging.rsocket: DEBUG
+

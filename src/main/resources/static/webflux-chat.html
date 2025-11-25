@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebFlux 채팅</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .chat-container {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 900px;
+            width: 100%;
+            height: 700px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px 32px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .header-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-info h2 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .username-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .disconnect-button {
+            padding: 10px 24px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .disconnect-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px 32px;
+            background: #f8f9fa;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            color: #999;
+        }
+
+        .empty-state p {
+            margin: 8px 0;
+            font-size: 18px;
+        }
+
+        .message {
+            margin-bottom: 16px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .message-username {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .message-time {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .message-content {
+            padding: 12px 16px;
+            border-radius: 12px;
+            max-width: 70%;
+            word-wrap: break-word;
+            line-height: 1.5;
+        }
+
+        .own-message {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .own-message .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .own-message .message-username {
+            color: #667eea;
+        }
+
+        .other-message {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .other-message .message-content {
+            background: white;
+            color: #333;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .other-message .message-username {
+            color: #764ba2;
+        }
+
+        .system-message {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 16px 0;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .system-message-text {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            padding: 8px 16px;
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .message-input-form {
+            display: flex;
+            gap: 12px;
+            padding: 24px 32px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 14px 18px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .message-input:focus {
+            border-color: #667eea;
+        }
+
+        .send-button {
+            padding: 14px 32px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .send-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+        }
+
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .login-box {
+            background: white;
+            padding: 48px;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .login-box h1 {
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 32px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 32px;
+            font-size: 16px;
+        }
+
+        .username-input {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            margin-bottom: 16px;
+            transition: border-color 0.3s;
+            outline: none;
+        }
+
+        .username-input:focus {
+            border-color: #667eea;
+        }
+
+        .connect-button {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .connect-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+
+    <script>
+        const API_BASE = '/api/chat';
+        let username = '';
+        let isConnected = false;
+        let eventSource = null;
+
+        const app = document.getElementById('app');
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleTimeString('ko-KR', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+        }
+
+        function renderLogin() {
+            app.innerHTML = `
+                <div class="login-container">
+                    <div class="login-box">
+                        <h1>💬 WebFlux 채팅</h1>
+                        <p class="subtitle">Server-Sent Events 기반 실시간 채팅</p>
+                        <input
+                            type="text"
+                            id="usernameInput"
+                            placeholder="사용자 이름을 입력하세요"
+                            class="username-input"
+                        />
+                        <button id="connectBtn" class="connect-button">입장하기</button>
+                    </div>
+                </div>
+            `;
+
+            const usernameInput = document.getElementById('usernameInput');
+            const connectBtn = document.getElementById('connectBtn');
+
+            usernameInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') handleConnect();
+            });
+            connectBtn.addEventListener('click', handleConnect);
+        }
+
+        async function handleConnect() {
+            const usernameInput = document.getElementById('usernameInput');
+            username = usernameInput.value.trim();
+
+            if (!username) {
+                alert('사용자 이름을 입력해주세요!');
+                return;
+            }
+
+            try {
+                // 입장 알림 전송
+                await fetch(`${API_BASE}/join`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, message: '', type: 'JOIN' })
+                });
+
+                isConnected = true;
+                renderChat();
+                connectEventSource();
+            } catch (error) {
+                console.error('연결 실패:', error);
+                alert('서버 연결에 실패했습니다.');
+            }
+        }
+
+        function connectEventSource() {
+            // Server-Sent Events 연결
+            eventSource = new EventSource(`${API_BASE}/stream`);
+
+            eventSource.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                addMessage(message);
+            };
+
+            eventSource.onerror = (error) => {
+                console.error('SSE 연결 오류:', error);
+                eventSource.close();
+            };
+        }
+
+        function renderChat() {
+            app.innerHTML = `
+                <div class="chat-container">
+                    <div class="chat-header">
+                        <div class="header-info">
+                            <h2>💬 WebFlux 채팅</h2>
+                            <span class="username-badge">${username}</span>
+                        </div>
+                        <button id="disconnectBtn" class="disconnect-button">나가기</button>
+                    </div>
+                    <div class="messages-container" id="messagesContainer">
+                        <div class="empty-state">
+                            <p>아직 메시지가 없습니다.</p>
+                            <p class="empty-subtitle">첫 번째 메시지를 보내보세요! 🚀</p>
+                        </div>
+                    </div>
+                    <form id="messageForm" class="message-input-form">
+                        <input
+                            type="text"
+                            id="messageInput"
+                            placeholder="메시지를 입력하세요..."
+                            class="message-input"
+                        />
+                        <button type="submit" class="send-button">전송</button>
+                    </form>
+                </div>
+            `;
+
+            const messagesContainer = document.getElementById('messagesContainer');
+            const messageForm = document.getElementById('messageForm');
+            const messageInput = document.getElementById('messageInput');
+            const disconnectBtn = document.getElementById('disconnectBtn');
+
+            messageForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const message = messageInput.value.trim();
+                if (!message) return;
+
+                try {
+                    await fetch(`${API_BASE}/send`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            username,
+                            message,
+                            timestamp: new Date().toISOString(),
+                            type: 'MESSAGE'
+                        })
+                    });
+                    messageInput.value = '';
+                } catch (error) {
+                    console.error('메시지 전송 실패:', error);
+                }
+            });
+
+            disconnectBtn.addEventListener('click', async () => {
+                try {
+                    await fetch(`${API_BASE}/leave`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, message: '', type: 'LEAVE' })
+                    });
+                } catch (error) {
+                    console.error('퇴장 알림 전송 실패:', error);
+                }
+
+                if (eventSource) {
+                    eventSource.close();
+                }
+                isConnected = false;
+                renderLogin();
+            });
+        }
+
+        function addMessage(message) {
+            const messagesContainer = document.getElementById('messagesContainer');
+            
+            // 빈 상태 제거
+            const emptyState = messagesContainer.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+
+            const messageDiv = document.createElement('div');
+            
+            if (message.type === 'JOIN' || message.type === 'LEAVE') {
+                messageDiv.className = 'system-message';
+                messageDiv.innerHTML = `
+                    <span class="system-message-text">${message.message}</span>
+                `;
+            } else {
+                const isOwn = message.username === username;
+                messageDiv.className = `message ${isOwn ? 'own-message' : 'other-message'}`;
+                messageDiv.innerHTML = `
+                    <div class="message-header">
+                        <span class="message-username">${message.username}</span>
+                        <span class="message-time">${formatTime(message.timestamp)}</span>
+                    </div>
+                    <div class="message-content">${message.message}</div>
+                `;
+            }
+
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // 초기 렌더링
+        renderLogin();
+    </script>
+</body>
+</html>
+
