@@ -16,26 +16,27 @@ public class RSocketChatController {
         this.chatService = chatService;
     }
 
-    @MessageMapping("chat.send")
+    @MessageMapping("rsocket.chat.send")
     public Mono<Void> sendMessage(ChatMessage message) {
         chatService.sendMessage(message);
         return Mono.empty();
     }
 
-    @MessageMapping("chat.stream")
+    @MessageMapping("rsocket.chat.stream")
     public Flux<ChatMessage> streamMessages() {
         return chatService.getMessages();
     }
 
-    @MessageMapping("chat.join")
+    @MessageMapping("rsocket.chat.join")
     public Mono<Void> joinChat(ChatMessage message) {
         chatService.userJoined(message.getUsername());
         return Mono.empty();
     }
 
-    @MessageMapping("chat.leave")
+    @MessageMapping("rsocket.chat.leave")
     public Mono<Void> leaveChat(ChatMessage message) {
         chatService.userLeft(message.getUsername());
         return Mono.empty();
     }
 }
+
